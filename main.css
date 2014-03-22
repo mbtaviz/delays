@@ -1,0 +1,23 @@
+/* Add styles here */
+
+body {
+  margin: 40px auto;
+  width: 100%;
+  text-align: center;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: normal;
+  color: #333;
+}
+
+line {
+  shape-rendering: crispEdges;
+  stroke-width: 3px;
+}
+
+line.main {
+  stroke-opacity: 0.8;
+  stroke-width: 2px !important;
+}
+circle {
+  sroke-opacity: 0.5;
+}
