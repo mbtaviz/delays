@@ -4,8 +4,8 @@
   d3.json('medians.json', function (medians) {
     d3.json('data.json', function (inputData) {
       var margin = {top: 10, right: 10, bottom: 10, left: 10},
-          outerWidth = 200,
-          outerHeight = 200,
+          outerWidth = 300,
+          outerHeight = 300,
           width = outerWidth - margin.left - margin.right,
           height = outerHeight - margin.top - margin.bottom,
           dist = 2;
@@ -74,19 +74,19 @@
           .attr('cx', scale * 8.48)
           .attr('cy', scale * 0)
           .attr('fill', "#E87200")
-          .attr('r', 3)
+          .attr('r', 5)
           .attr('stroke', "none");
         svg.append('circle')
           .attr('cx', scale * 14.38)
           .attr('cy', scale * 2.5)
           .attr('fill', "#2F5DA6")
-          .attr('r', 3)
+          .attr('r', 5)
           .attr('stroke', "none");
         svg.append('circle')
           .attr('cx', scale * 1)
           .attr('cy', scale * 3.18)
           .attr('fill', "#E12D27")
-          .attr('r', 3)
+          .attr('r', 5)
           .attr('stroke', "none");
         return svg;
       }
@@ -121,7 +121,7 @@
           d3.jsonp('http://jsonpwrapper.com/?urls%5B%5D=http%3A%2F%2Fdeveloper.mbta.com%2Flib%2Frthr%2F' + line + '.json&callback={callback}', function (data) {
             var byPair = {};
             var body = JSON.parse(data[0].body);
-            // console.log(JSON.stringify(body, null, 2));
+            console.log(JSON.stringify(body, null, 2));
             body.TripList.Trips.forEach(function (trip) {
               var last = null;
               var lastStopId = null;
@@ -152,8 +152,8 @@
             }
 
             inputData.links.forEach(function (link) {
-              update(link.source.id, link.target.id, -1);
-              update(link.target.id, link.source.id, 1);
+              update(link.source.id, link.target.id, 1);
+              update(link.target.id, link.source.id, -1);
             });
           });
         });
