@@ -9,32 +9,33 @@ body {
   color: #333;
 }
 
-line {
-  shape-rendering: crispEdges;
-  stroke-width: 3px;
+path {
+  /*shape-rendering: crispEdges;*/
+  stroke-width: 0.5;
+  stroke: black;
 }
 
-line.main {
+/*line.main {
   stroke-opacity: 0.8;
   stroke-width: 0px !important;
 }
 circle {
   sroke-opacity: 0.5;
-}
+}*/
 
 
-line.nodata {
-  stroke: #ccc;
+.nodata {
+  fill: #ccc;
 }
-line.ok {
-  stroke: rgb(22,167,34)
+.ok {
+  fill: rgb(22,167,34);
 }
-line.slowing {
-  stroke: rgb(253,158,59);
+.slowing {
+  fill: rgb(253,158,59);
 }
-line.slow {
-  stroke: rgb(251,0,7);
+.slow {
+  fill: rgb(251,0,7);
 }
-line.stopped {
-  stroke: rgb(174,0,4);
+.stopped {
+  fill: rgb(174,0,4);
 }
