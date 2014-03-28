@@ -1,12 +1,10 @@
 (function () {
   "use strict";
   var margin = {top: 10, right: 10, bottom: 10, left: 10},
-      outerWidth = 300,
-      outerHeight = 300,
-      width = outerWidth - margin.left - margin.right,
-      height = outerHeight - margin.top - margin.bottom,
       dist = 5,
-      endDotRadius = 8;
+      endDotRadius = 8,
+      cache = {},
+      idToLine = {};
 
   d3.json('medians.json', function (medians) {
     d3.json('data.json', function (inputData) {
@@ -21,22 +19,37 @@
         link.target.links = link.target.links || [];
         link.target.links.splice(0, 0, link);
         link.source.links.splice(0, 0, link);
+        idToLine[link.source.id + '|' + link.target.id] = link.line;
+        idToLine[link.target.id + '|' + link.source.id] = link.line;
       });
       var xRange = d3.extent(inputData.nodes, function (d) { return d.x; });
       var yRange = d3.extent(inputData.nodes, function (d) { return d.y; });
-      var xScale = width / (xRange[1] - xRange[0]);
-      var yScale = height / (yRange[1] - yRange[0]);
-      var scale = Math.min(xScale, yScale);
-      inputData.nodes.forEach(function (data) {
-        data.pos = [data.x * scale, data.y * scale];
-      });
 
       var svg;
       function draw () {
+        var m = Math.min(window.innerWidth || 300, window.innerHeight || 300) / 20;
+        margin = {
+          top: m,
+          right: m,
+          bottom: m,
+          left: m
+        };
+        var outerWidth = (window.innerWidth || 300) - 10,
+            outerHeight = (window.innerHeight || 300) - 10,
+            width = outerWidth - margin.left - margin.right,
+            height = outerHeight - margin.top - margin.bottom;
+        var xScale = width / (xRange[1] - xRange[0]);
+        var yScale = height / (yRange[1] - yRange[0]);
+        var scale = Math.min(xScale, yScale);
+        dist = 0.25 * scale;
+        endDotRadius = 0.35 * scale;
+        inputData.nodes.forEach(function (data) {
+          data.pos = [data.x * scale, data.y * scale];
+        });
         d3.select('svg').remove();
         svg = d3.select('body').append('svg')
-            .attr('width', outerWidth)
-            .attr('height', outerHeight)
+            .attr('width', scale * xRange[1] + margin.left + margin.right)
+            .attr('height', scale * yRange[1] + margin.top + margin.bottom)
           .append('g')
             .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
 
@@ -57,29 +70,31 @@
         lines.append('g')
             .attr('class', function (d) { return d.line + ' ' + d.source.id + '-' + d.target.id; })
           .append('path')
-            .attr('class', 'nodata')
             .datum(function (d) {
               return {
                 incoming: getEntering(d.source),
                 line: d.line,
+                ids: d.source.id + '|' + d.target.id,
                 segment: [d.source.pos, d.target.pos],
                 outgoing: getLeaving(d.target)
               };
             })
+            .attr('class', classFunc)
             .attr('d', lineFunction);
 
         lines.append('g')
             .attr('class', function (d) { return d.line + ' ' + d.target.id + '-' + d.source.id; })
           .append('path')
-            .attr('class', 'nodata')
             .datum(function (d) {
               return {
                 incoming: getEntering(d.target),
                 line: d.line,
+                ids: d.target.id + '|' + d.source.id,
                 segment: [d.target.pos, d.source.pos],
                 outgoing: getLeaving(d.source)
               };
             })
+            .attr('class', classFunc)
             .attr('d', lineFunction);
 
         function getEntering(node) {
@@ -131,9 +146,16 @@
         return svg;
       }
 
-      function offset(speed) {
+      function offset(selection) {
+        selection
+          .attr('d', lineFunction)
+          .attr('class', classFunc);
+      }
+
+      function classFunc(d) {
+        var speed = cache[d.ids];
         var cls;
-        if (speed === null) {
+        if (speed === null || typeof speed === 'undefined') {
           cls = "nodata";
         } else if (speed > 0.75) {
           cls = "ok";
@@ -144,15 +166,11 @@
         } else {
           cls = "stopped";
         }
-        return function (selection) {
-          selection
-            .attr('d', lineFunction)
-            .attr('class', cls);
-        };
+        return cls;
       }
 
       draw();
-      // d3.select(window).on('resize', draw);
+      d3.select(window).on('resize', draw);
       function poll() {
         ['red', 'blue', 'orange'].forEach(function (line) {
           d3.jsonp('http://jsonpwrapper.com/?urls%5B%5D=http%3A%2F%2Fdeveloper.mbta.com%2Flib%2Frthr%2F' + line + '.json&callback={callback}', function (data) {
@@ -173,24 +191,22 @@
               });
             });
 
-            function update(FROM, TO, dir) {
+            function update(FROM, TO) {
               var key = FROM + "|" + TO;
               if (byPair.hasOwnProperty(key)) {
-                var diff = average(byPair[key]);
+                var diff = d3.max(byPair[key]);
                 var median = medians[key];
                 var speed = median / diff;
-                svg.selectAll('.' + line + '.' + FROM + '-' + TO + ' path')
-                  .call(offset(speed));
-              } else {
-                svg.selectAll('.' + line + '.' + FROM + '-' + TO + ' path')
-                  .call(offset(null));
+                cache[key] = speed;
+              } else if (line === idToLine[key]) {
+                cache[key] = null;
               }
             }
-
             inputData.links.forEach(function (link) {
-              update(link.source.id, link.target.id, 1);
-              update(link.target.id, link.source.id, -1);
+              update(link.source.id, link.target.id);
+              update(link.target.id, link.source.id);
             });
+            svg.selectAll('path').call(offset);
           });
         });
         setTimeout(poll, 15000);
@@ -298,7 +314,6 @@
   function length (a, b) {
     return Math.sqrt(Math.pow(b[1] - a[1], 2) + Math.pow(b[0] - a[0], 2));
   }
-  window.intersect = intersect;
   function lineFunction (d) {
     var p1 = d.segment[0];
     var p2 = d.segment[1];
